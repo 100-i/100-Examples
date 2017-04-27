@@ -1,0 +1,8 @@
+moduledir '/opt/puppetlabs/puppet/modules'
+
+mod 'puppetlabs/gcc'
+mod 'puppetlabs/stdlib'
+mod 'jdowning/rbenv'
+mod 'willdurand/nodejs'
+mod '100/rails', :git => 'https://github.com/100-i/puppet-rails'
+mod '100/ecmascript', :git => 'https://github.com/100-i/puppet-ecmascript'
