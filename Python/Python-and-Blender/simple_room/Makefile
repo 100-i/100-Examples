@@ -1,17 +1,20 @@
 BLENDER_USER_SCRIPTS=src/simple_room
 
-BLENDER_OPTS="--background"
+BLENDER_BACKGROUND_OPTS=--background
 
-BLENDER_AUTOEXEC="--enable-autoexec"
+BLENDER_AUTOEXEC=--enable-autoexec
 
-BLENDER_DEBUG_OPTS="--debug-all"
+BLENDER_DEBUG_OPTS=--debug-all
 
 ANIMATION_FILES=src/simple_room
 
-all: python
+all: room
+
+room : $(BLENDER_USER_SCRIPTS)/room.py
+	blender $(BLENDER_AUTOEXEC) --python $^
 
 python : $(BLENDER_USER_SCRIPTS)/test.py
-	blender $(BLENDER_OPTS) --python $^
+	blender $(BLENDER_BACKGROUND_OPTS) --python $^
 
 python-gui : $(BLENDER_USER_SCRIPTS)/test.py
 	blender $(BLENDER_AUTOEXEC) --python $^ 
