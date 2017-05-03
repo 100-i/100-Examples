@@ -8,7 +8,13 @@ BLENDER_DEBUG_OPTS=--debug-all
 
 ANIMATION_FILES=src/simple_room
 
-all: room
+all: test_all
+
+test_all : $(BLENDER_USER_SCRIPTS)/set.py
+	blender $(BLENDER_AUTOEXEC) --python $^
+
+person : $(BLENDER_USER_SCRIPTS)/person.py
+	blender $(BLENDER_AUTOEXEC) --python $^
 
 room : $(BLENDER_USER_SCRIPTS)/room.py
 	blender $(BLENDER_AUTOEXEC) --python $^

@@ -18,15 +18,40 @@ def align_matrix(context):
         rot = context.space_data.region_3d.view_matrix.rotation.part().\
                 invert().resize4x4()
 
-def create_mesh_object(context, verts, edges, faces, name, edit, align_matrix):
-    #bpy.data.scenes['Scene'].render.engine = 'CYCLES'
+def position_camera(
+    camera_translate=(0.0, 0.0, 0.0),
+    camera_rotation=(0.0, 0.0, 0.0),
+    fov=50.0):
 
+    pi = 3.14159265
+
+    scene = bpy.data.scenes["Scene"]
+
+    scene.render.resolution_x = 1920
+    scene.render.resolution_y = 1080
+
+    # Set camera FOV in degrees
+    scene.camera.data.angle = fov * (pi/180.0)
+
+    scene.camera.rotation_mode = 'XYZ'
+
+    scene.camera.rotation_euler[0] = camera_rotation[0]*(pi/180.0)
+    scene.camera.rotation_euler[1] = camera_rotation[1]*(pi/180.0)
+    scene.camera.rotation_euler[2] = camera_rotation[2]*(pi/180.0)
+
+    scene.camera.location.x = camera_translate[0]
+    scene.camera.location.y = camera_translate[1]
+    scene.camera.location.z = camera_translate[2]
+
+def create_mesh_object(context, verts, edges, faces, name, edit, align_matrix):
     scene = context.scene
     scene.render.engine = 'CYCLES'
-    #scene.use_nodes = True
+
     obj_act = scene.objects.active
+
     bpy.ops.object.select_all()
     bpy.ops.object.delete()
+
     if edit and not obj_act:
         return None
 
@@ -36,11 +61,16 @@ def create_mesh_object(context, verts, edges, faces, name, edit, align_matrix):
 
     bpy.ops.object.select_all(action='DESELECT')
 
+    position_camera((.70,1.4,.35),(-98,-181,345))
+    add_lighting()
+
+
 def add_wall(
         object_name='Plane',
         object_group='Room', 
         rotation_degree=0,
-        axis_of_rotation='X'):
+        axis_of_rotation='X',
+        subdivision_level=5):
 
     # Create the plane
     bpy.ops.mesh.primitive_plane_add(
@@ -64,40 +94,33 @@ def add_wall(
     # Material
     mat = bpy.data.materials.get("basic")
 
+    # If the material is not found, create it
     if mat is None:
         mat = bpy.data.materials.new(name="basic")
         mat.use_nodes = True
-        #node_diffuse = mat.node_tree.nodes.new(type='ShaderNodeBSDF')
-        #node_diffuse.inputs[0].default_value = (1,1,1,1)
-        #node_diffuse.inputs[1].default_value = 2.0
-        #node_diffuse.location = 0,0
+        node_diffuse = mat.node_tree.nodes.new(type='ShaderNodeBsdfDiffuse')
+        node_diffuse.inputs[0].default_value = (1,1,1,1)
+        node_diffuse.inputs[1].default_value = 2.0
+        node_diffuse.location = 0,0
 
-        #node_output = nodes.new(type='ShaderOutputMaterial')
-        #node_output.location = 400,0
+        node_output = mat.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+        node_output.location = 400,0
 
-        #mat.node_tree.links.new(node_diffuse.outputs[0], node_output.inputs[0])
+        mat.node_tree.links.new(node_diffuse.outputs[0], node_output.inputs[0])
 
     if ob.data.materials:
         ob.data.materials[0] = mat
     else:
         ob.data.materials.append(mat)
 
-    mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-
-    #mat.node_tree.nodes.clear
-
-    #bpy.ops.object.material_slot_add()
-    #bpy.ops.cycles.use_shading_nodes()
-
-    #bpy.context.scene.objects.active = obj
     bpy.ops.object.modifier_add(type='MULTIRES')
 
     # Use simple subdivision type
     ob.modifiers["Multires"].subdivision_type = 'SIMPLE'
 
     # Subdivide
-    bpy.ops.object.multires_subdivide(modifier="Multires")
+    for i in range(0, subdivision_level):
+        bpy.ops.object.multires_subdivide(modifier="Multires")
 
     # Apply modifier
     bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Multires")
@@ -117,8 +140,20 @@ def add_wall(
 
     ob.matrix_world = orig_loc_mat * rot_mat * orig_rot_mat * orig_scale_mat
 
+def add_lighting():
+    bpy.ops.object.lamp_add(type="HEMI")
+    bpy.ops.transform.translate(value=(0,0,1.5))
+
+def add_table():
+    bpy.ops.mesh.primitive_cube_add()
+
+    ob = bpy.context.object
+
+    ob.scale = (.290,.15,.1)
+    bpy.ops.transform.translate(value=(.5,.39,.1))
 
 def add_room(width, height, length):
+    # TODO: remove verts and faces
     verts = []
     faces = []
 
@@ -126,7 +161,7 @@ def add_room(width, height, length):
     add_wall("Wall", "Room", 90, 'Y')
     add_wall("Wall", "Room", 90, 'X')
 
-    #bpy.ops.material.new()
+    add_table()
 
     return verts, faces
 
@@ -164,7 +199,6 @@ class AddRoom(bpy.types.Operator):
             self.width,
             self.height,
             self.length)
-
 
         obj = create_mesh_object(context, verts, [], faces, 'Room', self.edit,
             self.align_matrix)
